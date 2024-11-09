@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Ore Lavorative e Stipendi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 1300px;
+            width: 95%;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        h1 {
+            text-align: center;
+            color: #0056b3;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="number"], select, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button, .year-select {
+            background-color: #0056b3;
+            color: #fff;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            height: 50px;
+        }
+        button:hover, .year-select-wrapper:hover {
+            background-color: #004494;
+        }
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .tab, .year-select-wrapper {
+            cursor: pointer;
+            padding: 0;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            text-align: center;
+            flex-grow: 1;
+            margin: 5px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .tab.active {
+            background-color: #0056b3;
+            color: #fff;
+        }
+        .year-select-wrapper.active {
+            background-color: #0056b3;
+            color: #fff;
+        }
+        .year-select-wrapper::after {
+            content: '\25BC'; /* Freccia verso il basso */
+            position: absolute;
+            right: 15px;
+            pointer-events: none;
+        }
+        .year-select {
+            background-color: transparent;
+            color: #fff;
+            border: none;
+            font-size: 16px;
+            padding-right: 20px;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            text-align: center;
+            height: 100%;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 12px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        td {
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+        .weekend-row td {
+            background-color: #ffebeb;
+        }
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 8px solid #3498db;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 9999;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .time-input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="loader" id="loader"></div>
+
+    <div class="container" id="container">
+        <h1>Gestione Ore Lavorative e Stipendi</h1>
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('summary')">SUMMARY</div>
+            <div class="tab" onclick="showTab('stipendi')">STIPENDI</div>
+            <div class="year-select-wrapper" onclick="showTab('year')">
+                <select id="year-select" class="year-select" onchange="showTab('year')">
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <!-- Altri anni possono essere aggiunti qui -->
+                </select>
+            </div>
+        </div>
+
+        <div id="summary" class="tab-content active">
+            <!-- CONTENUTO DI SUMMARY -->
+        </div>
+        <div id="stipendi" class="tab-content">
+            <!-- CONTENUTO DI STIPENDI -->
+        </div>
+        <div id="year" class="tab-content">
+            <div class="form-group">
+                <label for="month-filter">Seleziona il mese:</label>
+                <select id="month-filter" onchange="filterByMonth()">
+                    <option value="">Tutti i mesi</option>
+                    <option value="01">Gennaio</option>
+                    <option value="02">Febbraio</option>
+                    <option value="03">Marzo</option>
+                    <option value="04">Aprile</option>
+                    <option value="05">Maggio</option>
+                    <option value="06">Giugno</option>
+                    <option value="07">Luglio</option>
+                    <option value="08">Agosto</option>
+                    <option value="09">Settembre</option>
+                    <option value="10">Ottobre</option>
+                    <option value="11">Novembre</option>
+                    <option value="12">Dicembre</option>
+                </select>
+            </div>
+            <div class="overflow-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>GIORNO</th>
+                            <th>INGRESSO</th>
+                            <th>USCITA</th>
+                            <th>ORE LAVORATE</th>
+                            <th>ORE STRAORDINARIO</th>
+                            <th>TOTALE ORE SETTIMANALI LAVORATE</th>
+                            <th>TOTALE ORE SETTIMANALI STRAORDINARIO</th>
+                            <th>TEMPO GIORNALIERO REGALATO</th>
+                            <th>TOTALE ORE MENSILI LAVORATE</th>
+                            <th>TOTALE ORE MENSILI STRAORDINARIO</th>
+                            <th>FLESSIBILIT&Agrave;</th>
+                            <th>GIORNI LAVORATI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="year-table-body">
+                        <!-- Righe verranno aggiunte dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('loader');
+            loader.style.display = 'none';
+            setDefaultYearAndMonthFilter();
+        });
+
+        async function showTab(tabId) {
+            const loader = document.getElementById('loader');
+            loader.style.display = 'block';
+
+            await new Promise(resolve => setTimeout(resolve, 500)); // Simula un piccolo ritardo
+
+            const tabs = document.querySelectorAll('.tab, .year-select-wrapper');
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+
+            if (tabId === 'year') {
+                const selectedYear = document.getElementById('year-select').value;
+                await populateDays(selectedYear);
+                filterByMonth();
+            }
+
+            const currentTab = document.querySelector(`.tab[onclick="showTab('${tabId}')"], .year-select-wrapper[onclick="showTab('${tabId}')"]`);
+            if (currentTab) {
+                currentTab.classList.add('active');
+            }
+
+            const currentTabContent = document.getElementById(tabId);
+            if (currentTabContent) {
+                currentTabContent.classList.add('active');
+            }
+
+            loader.style.display = 'none';
+        }
+
+        async function populateDays(year) {
+            const tbody = document.getElementById('year-table-body');
+            
+            if (!tbody) {
+                console.error(`Elemento year-table-body non trovato!`);
+                return;
+            }
+
+            tbody.innerHTML = '';
+            for (let month = 1; month <= 12; month++) {
+                const daysInMonth = new Date(year, month, 0).getDate();
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(year, month - 1, day);
+                    const dayString = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+                    const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Domenica, 6 = Sabato
+                    tbody.innerHTML += `
+                        <tr data-month="${String(month).padStart(2, '0')}" class="${isWeekend ? 'weekend-row' : ''}">
+                            <td>${dayString}</td>
+                            <td><input type="time" class="time-input ingresso"></td>
+                            <td><input type="time" class="time-input uscita"></td>
+                            <td class="ore-lavorate"></td>
+                            <td class="ore-straordinario"></td>
+                            <td></td>
+                            <td></td>
+                            <td class="tempo-regalato"></td>
+                            <td></td>
+                            <td></td>
+                            <td class="flessibilita"></td>
+                            <td></td>
+                        </tr>`;
+                }
+            }
+        }
+
+        document.addEventListener('change', (event) => {
+            if (event.target.classList.contains('ingresso') || event.target.classList.contains('uscita')) {
+                const row = event.target.closest('tr');
+                const ingresso = row.querySelector('.ingresso').value;
+                const uscita = row.querySelector('.uscita').value;
+                const oreLavorateCell = row.querySelector('.ore-lavorate');
+                const oreStraordinarioCell = row.querySelector('.ore-straordinario');
+                const tempoRegalatoCell = row.querySelector('.tempo-regalato');
+                const flessibilitaCell = row.querySelector('.flessibilita');
+
+                if (ingresso && uscita) {
+                    const oreLavorate = calcolaOreLavorate(ingresso, uscita);
+                    const oreStraordinario = calcolaOreStraordinario(ingresso, uscita);
+                    const tempoRegalato = calcolaTempoRegalato(ingresso);
+                    const flessibilita = calcolaFlessibilita(ingresso, uscita);
+                    oreLavorateCell.innerText = oreLavorate;
+                    oreStraordinarioCell.innerText = oreStraordinario;
+                    tempoRegalatoCell.innerText = tempoRegalato;
+                    flessibilitaCell.innerText = flessibilita;
+                }
+            }
+        });
+
+        function calcolaOreLavorate(ingresso, uscita) {
+            const [ingressoOre, ingressoMinuti] = ingresso.split(':').map(Number);
+            const [uscitaOre, uscitaMinuti] = uscita.split(':').map(Number);
+
+            let ingressoDate = new Date();
+            ingressoDate.setHours(ingressoOre, ingressoMinuti, 0, 0);
+
+            let uscitaDate = new Date();
+            uscitaDate.setHours(uscitaOre, uscitaMinuti, 0, 0);
+
+            const inizioLavoro = new Date();
+            inizioLavoro.setHours(7, 45, 0, 0);
+
+            if (ingressoDate < inizioLavoro) {
+                ingressoDate = inizioLavoro;
+            }
+
+            const pausaInizio = new Date();
+            pausaInizio.setHours(12, 30, 0, 0);
+
+            const pausaFine = new Date();
+            pausaFine.setHours(13, 15, 0, 0);
+
+            let oreLavorate = (uscitaDate - ingressoDate) / (1000 * 60);
+
+            if (ingressoDate < pausaInizio && uscitaDate > pausaFine) {
+                oreLavorate -= 45; // Sottrae 45 minuti di pausa pranzo
+            }
+
+            const ore = Math.floor(oreLavorate / 60);
+            const minuti = oreLavorate % 60;
+
+            return `${ore}h ${minuti}min`;
+        }
+
+        function calcolaOreStraordinario(ingresso, uscita) {
+            const [ingressoOre, ingressoMinuti] = ingresso.split(':').map(Number);
+            const [uscitaOre, uscitaMinuti] = uscita.split(':').map(Number);
+
+            let ingressoDate = new Date();
+            ingressoDate.setHours(ingressoOre, ingressoMinuti, 0, 0);
+
+            let uscitaDate = new Date();
+            uscitaDate.setHours(uscitaOre, uscitaMinuti, 0, 0);
+
+            let inizioStraordinario = new Date(ingressoDate.getTime() + (8 * 60 * 60 * 1000)); // Dopo 8 ore di lavoro
+            let fineFlessibilita = new Date(inizioStraordinario.getTime() + (30 * 60 * 1000)); // Dopo 8 ore e 30 minuti
+
+            if (uscitaDate <= inizioStraordinario) {
+                return '0h 0min';
+            }
+
+            let minutiStraordinario = 0;
+            if (uscitaDate > inizioStraordinario) {
+                let straordinarioMinuti = (uscitaDate - inizioStraordinario) / (1000 * 60);
+                if (straordinarioMinuti >= 30) {
+                    minutiStraordinario += 30; // I primi 30 minuti
+                    straordinarioMinuti -= 30;
+                    minutiStraordinario += Math.floor(straordinarioMinuti / 15) * 15;
+                }
+            }
+
+            const oreStraordinario = Math.floor(minutiStraordinario / 60);
+            minutiStraordinario %= 60;
+
+            return `${oreStraordinario}h ${minutiStraordinario}min`;
+        }
+
+        function calcolaTempoRegalato(ingresso) {
+            const [ingressoOre, ingressoMinuti] = ingresso.split(':').map(Number);
+
+            let ingressoDate = new Date();
+            ingressoDate.setHours(ingressoOre, ingressoMinuti, 0, 0);
+
+            const inizioLavoro = new Date();
+            inizioLavoro.setHours(7, 45, 0, 0);
+
+            if (ingressoDate < inizioLavoro) {
+                const tempoRegalato = (inizioLavoro - ingressoDate) / (1000 * 60);
+                const ore = Math.floor(tempoRegalato / 60);
+                const minuti = tempoRegalato % 60;
+                return `${ore}h ${minuti}min`;
+            }
+
+            return '0h 0min';
+        }
+
+        function calcolaFlessibilita(ingresso, uscita) {
+            const [ingressoOre, ingressoMinuti] = ingresso.split(':').map(Number);
+            const [uscitaOre, uscitaMinuti] = uscita.split(':').map(Number);
+
+            let ingressoDate = new Date();
+            ingressoDate.setHours(ingressoOre, ingressoMinuti, 0, 0);
+
+            let uscitaDate = new Date();
+            uscitaDate.setHours(uscitaOre, uscitaMinuti, 0, 0);
+
+            let inizioStraordinario = new Date(ingressoDate.getTime() + (8 * 60 * 60 * 1000)); // Dopo 8 ore di lavoro
+            let fineFlessibilita = new Date(inizioStraordinario.getTime() + (30 * 60 * 1000)); // Dopo 8 ore e 30 minuti
+
+            if (uscitaDate > inizioStraordinario && uscitaDate <= fineFlessibilita) {
+                const flessibilitaMinuti = (uscitaDate - inizioStraordinario) / (1000 * 60);
+                const ore = Math.floor(flessibilitaMinuti / 60);
+                const minuti = flessibilitaMinuti % 60;
+                return `${ore}h ${minuti}min`;
+            } else if (uscitaDate > fineFlessibilita) {
+                const minutiTotali = (uscitaDate - fineFlessibilita) / (1000 * 60);
+                const flessibilitaMinuti = minutiTotali % 15;
+                const ore = Math.floor(flessibilitaMinuti / 60);
+                const minuti = flessibilitaMinuti;
+                return `${ore}h ${minuti}min`;
+            }
+
+            return '0h 0min';
+        }
+
+        function filterByMonth() {
+            const monthFilter = document.getElementById('month-filter');
+            const year = document.getElementById('year-select');
+
+            if (!monthFilter || !year) {
+                console.error(`Elemento month-filter o year non trovato!`);
+                return;
+            }
+
+            const month = monthFilter.value;
+            const rows = document.querySelectorAll(`[id="year-table-body"] tr`);
+
+            rows.forEach(row => {
+                if (month === '' || row.dataset.month === month) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function setDefaultYearAndMonthFilter() {
+            const currentYear = new Date().getFullYear();
+            const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+            const yearSelect = document.getElementById('year-select');
+            const monthFilter = document.getElementById('month-filter');
+
+            if (yearSelect) {
+                yearSelect.value = currentYear;
+            }
+            if (monthFilter) {
+                monthFilter.value = currentMonth;
+            }
+            showTab('year');
+        }
+    </script>
+</body>
+</html>
